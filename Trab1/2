@@ -12,7 +12,7 @@
 #include <algorithm>
 class coord {
     public:
-        coord(double _x=0, double _y=0, double _z = 1)
+        coord(double _x, double _y, double _z = 1)
             : x(_x), y(_y), z(_z) {}
 
         coord(std::vector<double> c)
@@ -213,139 +213,79 @@ class drawable {
             return poligon_clipping(wid, hei);
         }
 
-        // coord* intersection(coord p1, coord p2, coord p3, coord p4) {
-        //     // Store the values for fast access and easy
-        //     // equations-to-code conversion
-        //     double x1 = p1.x, x2 = p2.x, x3 = p3.x, x4 = p4.x;
-        //     double y1 = p1.y, y2 = p2.y, y3 = p3.y, y4 = p4.y;
-        //
-        //     double d = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-        //     // If d is zero, there is no intersection
-        //     if (!(d != 0)) return NULL;
-        //
-        //     // Get the x and y
-        //     double pre = (x1*y2 - y1*x2), post = (x3*y4 - y3*x4);
-        //     double x = ( pre * (x3 - x4) - (x1 - x2) * post ) / d;
-        //     double y = ( pre * (y3 - y4) - (y1 - y2) * post ) / d;
-        //
-        //     // Check if the x and y coordinates are within both lines
-        //     if ( x < std::min(x1, x2) || x > std::max(x1, x2) ||
-        //             x < std::min(x3, x4) || x > std::max(x3, x4) ) return NULL;
-        //     if ( y < std::min(y1, y2) || y > std::max(y1, y2) ||
-        //             y < std::min(y3, y4) || y > std::max(y3, y4) ) return NULL;
-        //
-        //     // Return the point of intersection
-        //     //
-        //     coord* ret = new coord(x,y);
-        //     return ret;
-        // }
-        bool intersection(std::vector<coord> segment1, std::vector<coord> segment2, coord& result){
-            double p0_x=segment1[0].x,  p0_y=segment1[0].y,
-                   p1_x=segment1[1].x, p1_y=segment1[1].y,
-                   p2_x=segment2[0].x,  p2_y=segment2[0].y,
-                   p3_x=segment2[1].x, p3_y=segment2[1].y;
-
-            double delta_x1 = p0_x - p1_x;
-            double delta_y1 = p0_y - p1_y;
-
-            double delta_x2 = p2_x - p3_x;
-            double delta_y2 = p2_y - p3_y;
-
-            double m1;
-            double m2;
-
-            if(delta_x1 == 0 && delta_x2 == 0)//colinear
-                return false;
-
-            if(delta_x1==0){//find the point on line 2
-                m2 = (delta_y2/delta_x2);
-                double y = m2 * (p0_x - p2_x) + p2_y;
-                coord r(p0_x, y);
-                result = r;
-                return true;
-            }
-            if(delta_x2==0){//find the point on line 1
-                m1 = (delta_y1/delta_x1);
-                double y = m1 * (p2_x - p0_x) + p0_y;
-                coord r(p2_x,y);
-                result = r;
-                return true;
-            }
-
-            m1 = (delta_y1/delta_x1);
-            m2 = (delta_y2/delta_x2);
-
-            if(m1==m2)//No Collision parallels
-                return false;
-
-            double x = (- m1 * p0_x + m2 * p2_x + p0_y - p2_y) / (m2 - m1);
-            double y = m2 * (x - p2_x) + p2_y;
-            coord r(x,y);
-            result = r;
-            return true;
-        }
         bool poligon_clipping(int wid, int hei) {
-            std::vector<coord> coords, oldCoords;
-            std::vector<coord> vpCoords = {coord(10,10), coord(10,hei-10), coord(wid-10,hei-10), coord(wid-10,10)};
-            oldCoords.assign(vp.begin(), vp.end());
-            std::cout << "NEW CLIPPING!!!" << std::endl;
-
-            for (int j = 0; j < oldCoords.size(); j++) {
-
-                std::vector<coord> polygon_line = {coord(oldCoords[j].x, oldCoords[j].y),
-                    coord(oldCoords[(j+1)%oldCoords.size()].x,
-                            oldCoords[(j+1)%oldCoords.size()].y)};
-                int count = 0;
-                std::cout << "-------------------------------------------------" << std::endl;
-                for (int i = 0; i < vpCoords.size(); i++) {
-                    std::vector<coord> window_line = {coord(vpCoords[i].x, vpCoords[i].y),
-                    coord(vpCoords[(i+1)%vpCoords.size()].x,
-                            vpCoords[(i+1)%vpCoords.size()].y)};
-
-                    for (auto& i: window_line) {
-                        std::cout << "Wline: " << i << std::endl;
+            auto beginVp = std::begin(vp);
+            std::list<coord> coords;
+            // coords.assign(vp.begin(), vp.end());
+            auto it = vp.begin(), end = --std::end(vp);
+            for (auto& i : vp) {
+                std::cout << "Vp Before: " << i << std::endl;
+            }
+            drawable *d;
+            bool clippedSource = false, clippedTarget = false;
+            while(it != end){
+                // std::cout << "Execs..." << std::endl;
+                auto currentIt = it;
+                it++;
+                d = new drawable("dummy", {coord((*currentIt).x, (*currentIt).y), coord((*it).x, (*it).y)});
+                if(d->line_clipping(wid, hei)) {
+                    for (auto&i : d->vp) {
+                        std::cout << "D Coords: " << i << std::endl;
                     }
-
-                    for (auto& i: polygon_line) {
-                        std::cout << "Pline: " << i << std::endl;
+                    auto iterate = std::begin(d->vp), endIt = --std::end(d->vp);
+                    // if (std::find (coords.begin(), coords.end(), *iterate) != coords.end()) {
+                    coords.emplace_back(*iterate);
+                    if((*currentIt).x != (*iterate).x || (*currentIt).y != (*iterate).y) {
+                        // std::cout << "CurrentIt is different!" << std::endl;
+                        clippedSource = true;
+                        // coords.erase(currentIt);
+                        // currentIt = ind;
+                        // for (auto&i : coords) {
+                            // std::cout << "Coords: " << i << std::endl;
+                        // }
                     }
-                    bool sourceOut = ((window_line[1].x - window_line[0].x)*(polygon_line[0].y - window_line[0].y) > (window_line[1].y - window_line[0].y)*(polygon_line[0].x - window_line[0].x));
-                    bool targetOut = ((window_line[1].x - window_line[0].x)*(polygon_line[1].y - window_line[0].y) > (window_line[1].y - window_line[0].y)*(polygon_line[1].x - window_line[0].x));
-
-
-                    if (sourceOut && !targetOut) {
-                        std::cout << "Entered!" << std::endl;
-                        coord out;
-                        intersection(polygon_line, window_line, out);
-                        std::cout << "Emplaced!! " << out << std::endl;
-                        coords.push_back(out);
-                        coords.push_back(polygon_line[1]);
-
+                    iterate++;
+                    // if (std::find (coords.begin(), coords.end(), *iterate) != coords.end()) {
+                    coords.emplace_back(*iterate);
+                    if((*it).x != (*iterate).x || (*it).y != (*iterate).y) {
+                        // std::cout << "it is different!" << std::endl;
+                        clippedTarget = true;
+                        // coords.erase(it);
+                        // it = ind;
+                        // for (auto&i : coords) {
+                            // std::cout << "Coords: " << i << std::endl;
+                        // }
                     }
-                    if (targetOut && !sourceOut) {
-                        std::cout << "Entered1!" << std::endl;
-                        coord out;
-                        intersection(polygon_line, window_line, out);
-                        coords.push_back(polygon_line[0]);
-                        std::cout << "Emplaced!! " << out << std::endl;
-                        coords.push_back(out);
-
-                    }
-                    if (!targetOut && !sourceOut) {
-                        count++;
-                    }
-
-                }
-                if (count == vpCoords.size()) {
-                    coords.push_back(polygon_line[0]);
-                    coords.push_back(polygon_line[1]);
                 }
             }
-            if (coords.size() == 0) {
-                return false;
-            }
-            vp.assign(coords.begin(), coords.end());
+            // auto coordsIt = coords.begin(), coordsEnd = coords.end();
+            // auto itVp = vp.begin();
+            // while (coordsIt != coordsEnd) {
+                // if((*it).x > wid-10 || (*it).x < 10 || (*it).y > hei-10 || (*it).y < 10){
+                    // auto ind = vp.insert(itVp, *coordsIt);
+                    // itVp = vp.erase(itVp);
+                    // coordsIt++;
+                // } else {
+                    // itVp++;
+                // }
+            // }
 
+            //compute last two pairs
+            d = new drawable("dummy", {coord((*it).x, (*it).y), coord((*beginVp).x, (*beginVp).y)});
+            if(d->line_clipping(wid, hei)) {
+                auto iterate = std::begin(d->vp), endIt = --std::end(d->vp);
+                coords.insert(coords.end(), *iterate);
+                iterate++;
+                coords.insert(coords.begin(), *iterate);
+            }
+
+            for (auto&i : coords) {
+                std::cout << "Coords: " << i << std::endl;
+            }
+            if (clippedSource || clippedTarget) {
+                vp = coords;
+            }
+            // vp = coords;
             return true;
         }
 
@@ -390,7 +330,7 @@ class drawable {
             q4 = ymax - y1;
             lu2.emplace_back(q4);
             // if ((p1 == 0 || p2 == 0 || p3 == 0 || p4 == 0) && (q1 < 0 || q2 < 0 || q3 < 0 || q4 < 0)) {
-            // return false;
+                // return false;
             // }
             std::vector<double> r;
             double u1 = 0.0, u2 = 1.0;
@@ -428,7 +368,6 @@ class drawable {
         }
 
         void viewport(GtkWidget* area) {
-            vp.assign(orig.begin(), orig.end());
             auto it1 = normCoord.begin(), it2 = vp.begin();
             for (; it1 != normCoord.end(); ++it1, ++it2) {
                 (*it2).x = ((((*it1).x +1) / (2)) * (384 - 0)) + 10;
