@@ -103,11 +103,11 @@ public:
 class drawable {
 public:
   explicit drawable(std::string _name, const std::list<coord> &_orig,
-                    bool f = false, bool c = false)
-      : name(std::move(_name)), orig(_orig), scn(_orig), fill(f), curve(c) {
+                    bool f = false, bool c = false, bool s = false)
+      : name(std::move(_name)), orig(_orig), scn(_orig), fill(f), curve(c),
+        spline(s) {
     faces = matrix<int>(1, orig.size());
     std::iota(faces[0].begin(), faces[0].end(), 1);
-
     if (curve) {
       int n = ((this->orig.size() - 4) / 3);
 
@@ -115,23 +115,68 @@ public:
       _orig.assign(std::begin(this->orig), std::end(this->orig));
       this->orig.clear();
 
-      for (int i = 0; i < n+1; i++) {
+      for (int i = 0; i < n + 1; ++i) {
         for (double j = 0; j < 1; j += 0.001) {
           double j2 = j * j;
           double j3 = j * j * j;
 
           double x, y;
-          x = (-j3 + (3 * j2) + (- 3 * j) + 1) * _orig[i * 3 + 0].x +
-              ((3 * j3) + (- 6 * j2) + (3 * j)) * _orig[i * 3 + 1].x +
-              ((-3 * j3) + (3 * j2)) * _orig[i * 3 + 2].x + (j3)*_orig[i * 3 + 3].x;
-          y = (-j3 + (3 * j2) + (- 3 * j) + 1) * _orig[i * 3 + 0].y +
-              ((3 * j3) + (- 6 * j2) + (3 * j)) * _orig[i * 3 + 1].y +
-              ((-3 * j3) + (3 * j2)) * _orig[i * 3 + 2].y + (j3)*_orig[i * 3 + 3].y;
+          x = (-j3 + (3 * j2) + (-3 * j) + 1) * _orig[i * 3 + 0].x +
+              ((3 * j3) + (-6 * j2) + (3 * j)) * _orig[i * 3 + 1].x +
+              ((-3 * j3) + (3 * j2)) * _orig[i * 3 + 2].x +
+              (j3)*_orig[i * 3 + 3].x;
+          y = (-j3 + (3 * j2) + (-3 * j) + 1) * _orig[i * 3 + 0].y +
+              ((3 * j3) + (-6 * j2) + (3 * j)) * _orig[i * 3 + 1].y +
+              ((-3 * j3) + (3 * j2)) * _orig[i * 3 + 2].y +
+              (j3)*_orig[i * 3 + 3].y;
 
           this->orig.emplace_back(coord(x, y));
         }
       }
       this->scn = orig;
+    } else if (spline) {
+      std::vector<coord> coords;
+      coords.assign(std::begin(orig), std::end(orig));
+      orig.clear();
+
+      double t = 0.001;
+      double t2 = t * t;
+      double t3 = t2 * t;
+
+      for (int i = 0; i < coords.size() - 3; ++i) {
+        coord coef1 = coords[i];
+        coord coef2 = coords[i + 1];
+        coord coef3 = coords[i + 2];
+        coord coef4 = coords[i + 3];
+
+        double a = -(1.0 / 6.0) * coef1.x + 0.5 * coef2.x - 0.5 * coef3.x +
+                   (1.0 / 6.0) * coef4.x;
+        double b = 0.5 * coef1.x - coef2.x + 0.5 * coef3.x;
+        double c = -0.5 * coef1.x + 0.5 * coef3.x;
+        double d = (1.0 / 6.0) * coef1.x + (2.0 / 3.0) * coef2.x +
+                   (1.0 / 6.0) * coef3.x;
+        double x = d;
+
+        double deltaX = a * t3 + b * t2 + c * t;
+        double deltaX2 = (6 * a * t3) + (2 * b * t2);
+        double deltaX3 = (6 * a * t3);
+
+        a = -(1.0 / 6.0) * coef1.y + 0.5 * coef2.y - 0.5 * coef3.y +
+            (1.0 / 6.0) * coef4.y;
+        b = 0.5 * coef1.y - coef2.y + 0.5 * coef3.y;
+        c = -0.5 * coef1.y + 0.5 * coef3.y;
+        d = (1.0 / 6.0) * coef1.y + (2.0 / 3.0) * coef2.y +
+            (1.0 / 6.0) * coef3.y;
+        double y = d;
+
+        double deltaY = a * t3 + b * t2 + c * t;
+        double deltaY2 = (6 * a * t3) + (2 * b * t2);
+        double deltaY3 = (6 * a * t3);
+
+        orig.emplace_back(coord(x, y));
+        fowardDiff(x, deltaX, deltaX2, deltaX3, y, deltaY, deltaY2, deltaY3);
+      }
+      scn = orig;
     }
   }
 
@@ -146,6 +191,25 @@ public:
     return os << d.faces;
   }
 
+  void fowardDiff(double _x, double deltaX, double deltaX2, double deltaX3,
+                  double _y, double deltaY, double deltaY2, double deltaY3) {
+    for (float t = 0.0; t < 1.0; t += 0.001) {
+      double x = _x, y = _y;
+
+      x += deltaX;
+      deltaX += deltaX2;
+      deltaX2 += deltaX3;
+
+      y += deltaY;
+      deltaY += deltaY2;
+      deltaY2 += deltaY3;
+
+      orig.emplace_back(coord(x, y));
+      _x = x;
+      _y = y;
+    }
+  }
+
   void draw(cairo_t *cr, const std::list<coord> &points) {
     auto it = std::begin(points), end = --std::end(points);
     cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
@@ -153,7 +217,7 @@ public:
     while (it++ != end) {
       cairo_line_to(cr, (*it).x, (*it).y);
     }
-    if (!curve) {
+    if (!curve && !spline) {
       cairo_close_path(cr);
     }
     if (fill) {
@@ -166,6 +230,9 @@ public:
     if (orig.size() > 2) {
       if (this->curve) {
         return 4;
+      }
+      if (this->spline) {
+        return 5;
       }
       return 3;
     }
@@ -186,33 +253,34 @@ public:
   }
 
   std::list<coord> curve_clipping(const window &w) {
-      auto it = std::begin(scn), end = --std::end(scn);
-      std::list<coord> nSegment;
-      std::list<coord> coords;
+    auto it = std::begin(scn), end = --std::end(scn);
+    std::list<coord> nSegment;
+    std::list<coord> coords;
 
-
-      drawable line("segment", {coord((*it).x, (*it).y), coord((*it++).x, (*it++).y)});
-      nSegment = line.liang_barsky(w);
+    drawable line("segment",
+                  {coord((*it).x, (*it).y), coord((*it++).x, (*it++).y)});
+    nSegment = line.liang_barsky(w);
+    if (nSegment.size() != 0) {
+      coords.emplace_back(*std::begin(nSegment));
+    }
+    while (it != end) {
+      nSegment.clear();
+      auto actualIt = it;
+      it++;
+      drawable line1("segment", {coord((*actualIt).x, (*actualIt).y),
+                                 coord((*it).x, (*it).y)});
+      nSegment = line1.liang_barsky(w);
       if (nSegment.size() != 0) {
-          coords.emplace_back(*std::begin(nSegment));
+        coords.emplace_back(*(--std::end(nSegment)));
       }
-      while(it != end) {
-        nSegment.clear();
-        auto actualIt = it;
-        it++;
-        drawable line1("segment", {coord((*actualIt).x, (*actualIt).y), coord((*it).x, (*it).y)});
-        nSegment = line1.liang_barsky(w);
-        if (nSegment.size() != 0) {
-            coords.emplace_back(*(--std::end(nSegment)));
-        }
-      }
-      std::cout << (*std::begin(coords)).x << (*std::begin(coords)).y << std::endl;
-      return coords;
+    }
+    return coords;
   }
 
   std::list<coord> liang_barsky(const window &w) {
     coord &s = *std::begin(scn), &t = *(--std::end(scn));
-    std::vector<double> lu1({-1*(t.x - s.x), t.x - s.x, -1*(t.y - s.y), t.y - s.y}),
+    std::vector<double> lu1(
+        {-1 * (t.x - s.x), t.x - s.x, -1 * (t.y - s.y), t.y - s.y}),
         lu2({s.x + w.wid, w.wid - s.x, s.y + w.hei, w.hei - s.y}), r;
     double u1 = 0.0, u2 = 1.0, x1 = s.x, x2 = s.y;
 
@@ -235,7 +303,6 @@ public:
     coords.assign(std::begin(scn), std::end(scn));
     auto source = std::begin(coords), target = --std::end(coords);
 
-
     if (u2 < 1) {
       (*target).x = x1 + u2 * lu1[1];
       (*target).y = x2 + u2 * lu1[3];
@@ -250,7 +317,8 @@ public:
 
   inline int region_code(const window &w, const coord &c) {
     return ((1 << ((c.y > w.hei) * 4)) | (1 << ((c.y < -w.hei) * 3)) |
-            (1 << ((c.x > w.wid) * 2)) | (1 << ((c.x < -w.wid)) * 1)) >> 1;
+            (1 << ((c.x > w.wid) * 2)) | (1 << ((c.x < -w.wid)) * 1)) >>
+           1;
   }
 
   inline void cs_inters(coord &t, const coord &s, const window &w, int r) {
@@ -295,8 +363,8 @@ public:
     }
 
     if ((RC1 & RC2) != 0) {
-        std::list<coord> emp;
-        return emp;
+      std::list<coord> emp;
+      return emp;
     }
 
     std::list<coord> coords;
@@ -304,22 +372,23 @@ public:
     coords.assign(std::begin(scn), std::end(scn));
 
     if (RC1 != RC2) {
-        if (!(RC1 & RC2)) {
-            if (RC1 != 0) {
-                cs_inters(s, t, w, RC1);
-            }
-            if (RC2 != 0) {
-                cs_inters(t, s, w, RC2);
-            }
-
-            if((s.x > w.wid || s.x < -w.wid || s.y > w.wid || s.y < -w.wid) || (t.x > w.wid || t.x < -w.wid || t.y > w.wid || t.y < -w.wid)) {
-                std::list<coord> emp;
-                return emp;
-            }
-            aux = scn;
-            scn = coords;
-            return aux;
+      if (!(RC1 & RC2)) {
+        if (RC1 != 0) {
+          cs_inters(s, t, w, RC1);
         }
+        if (RC2 != 0) {
+          cs_inters(t, s, w, RC2);
+        }
+
+        if ((s.x > w.wid || s.x < -w.wid || s.y > w.wid || s.y < -w.wid) ||
+            (t.x > w.wid || t.x < -w.wid || t.y > w.wid || t.y < -w.wid)) {
+          std::list<coord> emp;
+          return emp;
+        }
+        aux = scn;
+        scn = coords;
+        return aux;
+      }
     }
     std::list<coord> emp;
     return emp;
@@ -390,6 +459,8 @@ public:
       return weiler_atherton(ww);
     case 4:
       return curve_clipping(ww);
+    case 5:
+      return curve_clipping(ww);
     }
     return {};
   }
@@ -399,6 +470,7 @@ public:
   matrix<int> faces;
   bool fill{false};
   bool curve;
+  bool spline;
 };
 
 #endif // STRUCTURES_HPP
