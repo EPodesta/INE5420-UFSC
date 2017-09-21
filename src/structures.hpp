@@ -217,7 +217,7 @@ public:
       cairo_line_to(cr, (*it).x, (*it).y);
     }
     if (!curve && !spline) {
-      cairo_close_path(cr);
+        cairo_close_path(cr);
     }
     if (fill) {
       cairo_fill(cr);

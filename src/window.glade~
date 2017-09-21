@@ -348,12 +348,12 @@
                 <property name="label_xalign">0</property>
                 <property name="shadow_type">none</property>
                 <child>
-                  <object class="GtkAlignment" id="align5">
+                  <object class="GtkAlignment">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="left_padding">12</property>
                     <child>
-                      <object class="GtkGrid" id="grid9">
+                      <object class="GtkGrid">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="halign">center</property>
@@ -403,7 +403,7 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkLabel" id="label8">
+                          <object class="GtkLabel">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="label" translatable="yes">Angle</property>
@@ -414,7 +414,7 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkLabel" id="label9">
+                          <object class="GtkLabel">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="label" translatable="yes">Vector</property>
@@ -425,7 +425,7 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkLabel" id="labell">
+                          <object class="GtkLabel">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="label" translatable="yes">Operation</property>
@@ -465,7 +465,7 @@
                   </object>
                 </child>
                 <child type="label">
-                  <object class="GtkLabel" id="label11">
+                  <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="label" translatable="yes">Object movement</property>
@@ -586,7 +586,7 @@
                   </object>
                 </child>
                 <child type="label">
-                  <object class="GtkLabel" id="viewportLabel">
+                  <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="label" translatable="yes">Viewport</property>
