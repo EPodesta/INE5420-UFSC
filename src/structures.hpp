@@ -142,7 +142,7 @@ public:
       double t2 = t * t;
       double t3 = t2 * t;
 
-      for (int i = 0; i < coords.size() - 3; ++i) {
+      for (unsigned int i = 0; i < coords.size() - 3; ++i) {
         coord coef1 = coords[i];
         coord coef2 = coords[i + 1];
         coord coef3 = coords[i + 2];
@@ -467,9 +467,7 @@ public:
   const std::string name;
   std::list<coord> orig, scn;
   matrix<int> faces;
-  bool fill{false};
-  bool curve;
-  bool spline;
+  bool fill{false}, curve{false}, spline{false};
 };
 
 #endif // STRUCTURES_HPP
