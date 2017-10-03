@@ -17,6 +17,10 @@ static std::unordered_map<std::string, std::unique_ptr<drawable>> objects;
 static window w;
 static int vp_height, vp_width, lclip;
 
+matrix<double> m_perspective(const double d) {
+  return matrix<double>({{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 1/d, 0}});
+}
+
 matrix<double> m_transfer(const coord &c) {
   return matrix<double>({{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {c.x, c.y, c.z, 1}});
 }
@@ -160,9 +164,14 @@ void update() {
   border.draw(cr, border.orig);
 
   for (auto &obj : objects) {
-    transform(m_transfer(-w.center) * m_rotatexyz(w.anglex, w.angley, w.anglez) *
-                  m_scale(coord(1 / w.wid, 1 / w.hei)),
+    transform(m_transfer(-w.center) * m_rotatexyz(w.anglex, w.angley, w.anglez) * m_scale(coord(1/w.wid, 1 / w.hei)),
               obj.second->orig, obj.second->scn);
+    for(auto &c : obj.second->scn) {
+       c.x = c.x/(c.z/10);
+       c.y = c.y/(c.z/10);
+       c.z = 10;
+    }
+    // transform(m_scale(coord(1 / w.wid, 1 / w.hei)), obj.second->scn, obj.second->scn);
     obj.second->draw(cr, viewport(obj.second->clip()));
   }
 
