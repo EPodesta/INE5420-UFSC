@@ -211,23 +211,16 @@ public:
       : drawable(n, cs, f), fill(_fill) {}
 
   void draw(cairo_t *cr, const std::list<coord> &points) override {
-    std::vector<coord> pts{std::begin(points), std::end(points)};
-    for (size_t i = 0; i < faces.size(); ++i) {
-      std::list<coord> face;
-      for (size_t j = 0; j < faces[i].size(); ++j) {
-        face.emplace_back(pts[faces[i][j] - 1]);
-      }
-      auto it = std::begin(face), end = --std::end(face);
-      cairo_move_to(cr, (*it).x, (*it).y);
-      while (it++ != end) {
-        cairo_line_to(cr, (*it).x, (*it).y);
-      }
-      cairo_close_path(cr);
-      if (fill) {
-        cairo_fill(cr);
-      }
-      cairo_stroke(cr);
+    auto it = std::begin(points), end = --std::end(points);
+    cairo_move_to(cr, (*it).x, (*it).y);
+    while (it++ != end) {
+      cairo_line_to(cr, (*it).x, (*it).y);
     }
+    cairo_close_path(cr);
+    if (fill) {
+      cairo_fill(cr);
+    }
+    cairo_stroke(cr);
   }
 
   coord line_inters(const coord &c1, const coord &c2, const coord &c3,
@@ -318,8 +311,6 @@ public:
     return coord(x, y);
   }
 
-
-
   std::list<coord> clip(const window &w) override {
     std::vector<coord> w_coord({coord(w.wid, w.hei), coord(w.wid, -w.hei),
                                 coord(-w.wid, -w.hei), coord(-w.wid, w.hei)}),
@@ -336,15 +327,15 @@ public:
         bool t_out =
             ((c2.x - c1.x) * (c4.y - c1.y) > (c2.y - c1.y) * (c4.x - c1.x));
         if (s_out != t_out) {
-          if (!((j+1)%old_coords.size() == 0))
+          if (!((j + 1) % old_coords.size() == 0))
             coords.emplace_back(line_inters(c3, c4, c1, c2));
           if (s_out) {
-            if (!((j+1)%old_coords.size() == 0)) {
+            if (!((j + 1) % old_coords.size() == 0)) {
               coords.push_back(c4);
             }
           }
         } else if (!t_out && !s_out) {
-          if (!((j+1)%old_coords.size() == 0)) {
+          if (!((j + 1) % old_coords.size() == 0)) {
             coords.push_back(c4);
           }
         }
